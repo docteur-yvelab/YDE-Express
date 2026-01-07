@@ -1,199 +1,29 @@
-// import React, { useState, useEffect, useCallback } from 'react';
-// import { MapContainer, TileLayer, Marker, Popup, useMapEvents } from 'react-leaflet';
-// import L from 'leaflet';
-// import { io } from 'socket.io-client';
-// import Routing from './components/Routing';
-
-// // --- CONFIGURATION ---
-// const socket = io('http://localhost:4000');
-
-// import markerIcon from 'leaflet/dist/images/marker-icon.png';
-// import markerShadow from 'leaflet/dist/images/marker-shadow.png';
-// let DefaultIcon = L.icon({
-//     iconUrl: markerIcon,
-//     shadowUrl: markerShadow,
-//     iconSize: [25, 41],
-//     iconAnchor: [12, 41]
-// });
-// L.Marker.prototype.options.icon = DefaultIcon;
-
-// const POSTE_CENTRALE = [3.8667, 11.5167];
-// const BASTOS_DEFAULT = [3.8950, 11.5130];
-
-// function MapClickHandler({ onLocationSelect, disabled }) {
-//   useMapEvents({
-//     click: (e) => {
-//       if (!disabled) onLocationSelect([e.latlng.lat, e.latlng.lng]);
-//     },
-//   });
-//   return null;
-// }
-
-// export default function App() {
-//   const [courierPos, setCourierPos] = useState(POSTE_CENTRALE);
-//   const [destination, setDestination] = useState(BASTOS_DEFAULT);
-//   const [isDelivering, setIsDelivering] = useState(false);
-//   const [routeInfo, setRouteInfo] = useState({ distance: 0, duration: 0 });
-//   const [isSidebarOpen, setIsSidebarOpen] = useState(true); // Pour mobile
-
-//   // WebSockets
-//   useEffect(() => {
-//     socket.on('location-received', (data) => setCourierPos([data.lat, data.lng]));
-//     return () => socket.off('location-received');
-//   }, []);
-
-//   const emitLocation = useCallback((lat, lng) => {
-//     socket.emit('update-location', { lat, lng, orderId: 'YDE-237' });
-//   }, []);
-
-//   // Simulation
-//   useEffect(() => {
-//     if (isDelivering) {
-//       const interval = setInterval(() => {
-//         setCourierPos(prev => {
-//           const distLat = Math.abs(prev[0] - destination[0]);
-//           const distLng = Math.abs(prev[1] - destination[1]);
-//           if (distLat < 0.0005 && distLng < 0.0005) {
-//             setIsDelivering(false);
-//             clearInterval(interval);
-//             return destination;
-//           }
-//           const newLat = prev[0] + (destination[0] - prev[0]) * 0.1;
-//           const newLng = prev[1] + (destination[1] - prev[1]) * 0.1;
-//           emitLocation(newLat, newLng);
-//           return [newLat, newLng];
-//         });
-//       }, 1000);
-//       return () => clearInterval(interval);
-//     }
-//   }, [isDelivering, destination, emitLocation]);
-
-//   return (
-//     <div className="h-screen w-full flex flex-col md:flex-row overflow-hidden font-sans bg-gray-50">
-      
-//       {/* HEADER MOBILE (Visible uniquement sur petit écran) */}
-//       <header className="md:hidden bg-blue-600 p-4 text-white flex justify-between items-center shadow-md z-[2000]">
-//         <h1 className="font-black italic">YDE-EXPRESS 🛵</h1>
-//         <button 
-//           onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-//           className="bg-blue-500 px-3 py-1 rounded-lg text-xs font-bold"
-//         >
-//           {isSidebarOpen ? "Fermer" : "Infos"}
-//         </button>
-//       </header>
-
-//       {/* SIDEBAR RESPONSIVE */}
-//       <aside className={`
-//         ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}
-//         fixed md:relative z-[1002] md:z-auto
-//         w-full md:w-80 h-[calc(100%-60px)] md:h-full
-//         bg-white shadow-2xl flex flex-col border-r border-gray-200
-//         transition-transform duration-300 ease-in-out
-//       `}>
-//         {/* Logo (Desktop) */}
-//         <div className="hidden md:block p-6 bg-blue-600 text-white">
-//           <h1 className="text-xl font-black italic tracking-tighter">YDE-EXPRESS 🛵</h1>
-//           <p className="text-blue-100 text-[10px] uppercase font-bold mt-1 tracking-widest">Yaoundé Delivery Engine</p>
-//         </div>
-
-//         <div className="p-5 flex-1 space-y-6 overflow-y-auto">
-//           {/* Status Card */}
-//           <div className="bg-blue-50 p-4 rounded-2xl border border-blue-100 flex justify-between items-center">
-//             <div>
-//               <p className="text-[10px] font-bold text-blue-400 uppercase tracking-tighter">Distance</p>
-//               <p className="text-xl font-black text-blue-900">{routeInfo.distance} km</p>
-//             </div>
-//             <div className="text-right">
-//               <p className="text-[10px] font-bold text-blue-400 uppercase tracking-tighter">ETA</p>
-//               <p className="text-xl font-black text-blue-900">{routeInfo.duration} min</p>
-//             </div>
-//           </div>
-
-//           {/* Itinéraire */}
-//           <div className="space-y-4 px-2">
-//             <div className="flex gap-4">
-//               <div className="flex flex-col items-center py-1">
-//                 <div className="w-2 h-2 bg-blue-600 rounded-full"></div>
-//                 <div className="w-0.5 flex-1 bg-gray-200 my-1"></div>
-//               </div>
-//               <div className="text-sm italic text-gray-500">Poste Centrale (Départ)</div>
-//             </div>
-//             <div className="flex gap-4">
-//               <div className="text-lg">📍</div>
-//               <div className="text-sm font-bold text-gray-700">Destination choisie</div>
-//             </div>
-//           </div>
-
-//           {!isDelivering && (
-//             <div className="p-3 bg-yellow-50 rounded-xl text-[11px] text-yellow-700 border border-yellow-100">
-//               👉 Touchez la carte pour changer le lieu de livraison.
-//             </div>
-//           )}
-//         </div>
-
-//         {/* Bouton Fixe en bas */}
-//         <div className="p-4 border-t border-gray-100 bg-white">
-//           <button 
-//             disabled={isDelivering}
-//             onClick={() => {
-//               setIsDelivering(true);
-//               if (window.innerWidth < 768) setIsSidebarOpen(false); // Ferme la sidebar sur mobile au lancement
-//             }}
-//             className={`w-full py-4 rounded-2xl font-bold uppercase transition-all shadow-lg ${
-//               isDelivering 
-//               ? 'bg-gray-100 text-gray-400' 
-//               : 'bg-blue-600 text-white shadow-blue-200'
-//             }`}
-//           >
-//             {isDelivering ? "Livraison en cours..." : "Confirmer & Lancer"}
-//           </button>
-//         </div>
-//       </aside>
-
-//       {/* ZONE CARTE */}
-//       <main className="flex-1 relative z-0">
-//         <MapContainer center={POSTE_CENTRALE} zoom={14} className="h-full w-full">
-//           <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
-          
-//           <MapClickHandler 
-//             onLocationSelect={(coords) => setDestination(coords)} 
-//             disabled={isDelivering} 
-//           />
-
-//           <Marker position={POSTE_CENTRALE}><Popup>Vendeur</Popup></Marker>
-//           <Marker position={destination}><Popup>Destination</Popup></Marker>
-//           <Marker position={courierPos} />
-
-//           <Routing 
-//             start={POSTE_CENTRALE} 
-//             end={destination} 
-//             onRouteInfo={(info) => setRouteInfo(info)}
-//           />
-//         </MapContainer>
-//       </main>
-//     </div>
-//   );
-// }
-
 import React, { useState, useEffect, useCallback } from 'react';
-import { MapContainer, TileLayer, Marker, Popup, useMapEvents } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, Popup, useMapEvents, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import { io } from 'socket.io-client';
+import { Facebook, MessageCircle } from 'lucide-react'; // Import des icônes
 import Routing from './components/Routing';
 
 const socket = io('http://localhost:4000');
 
-// Icônes personnalisées
-const iconVendeur = L.icon({ iconUrl: 'https://cdn-icons-png.flaticon.com/512/606/606363.png', iconSize: [35, 35] });
-const iconClient = L.icon({ iconUrl: 'https://cdn-icons-png.flaticon.com/512/684/684908.png', iconSize: [35, 35] });
+// Icons
+const iconVendeur = L.icon({ iconUrl: 'https://cdn-icons-png.flaticon.com/512/606/606363.png', iconSize: [30, 30] });
+const iconClient = L.icon({ iconUrl: 'https://cdn-icons-png.flaticon.com/512/684/684908.png', iconSize: [30, 30] });
 const iconMoto = L.icon({ 
   iconUrl: 'https://cdn-icons-png.flaticon.com/512/713/713437.png', 
-  iconSize: [40, 40],
-  className: 'smooth-move' // Applique la transition CSS
+  iconSize: [35, 35],
+  className: 'smooth-move' 
 });
 
 const POSTE_CENTRALE = [3.8667, 11.5167];
 const BASTOS_DEFAULT = [3.8950, 11.5130];
+
+function ChangeView({ center }) {
+  const map = useMap();
+  useEffect(() => { map.setView(center, 14); }, [center]);
+  return null;
+}
 
 function MapClickHandler({ onLocationSelect, disabled }) {
   useMapEvents({ click: (e) => !disabled && onLocationSelect([e.latlng.lat, e.latlng.lng]) });
@@ -205,90 +35,155 @@ export default function App() {
   const [destination, setDestination] = useState(BASTOS_DEFAULT);
   const [isDelivering, setIsDelivering] = useState(false);
   const [routeData, setRouteData] = useState({ distance: 0, duration: 0, path: [] });
-  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const [showArrivalModal, setShowArrivalModal] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
 
-  // Écoute temps réel
+  // Logic Mouvement & Socket
   useEffect(() => {
     socket.on('location-received', (data) => setCourierPos([data.lat, data.lng]));
     return () => socket.off('location-received');
   }, []);
 
-  // Animation fluide : parcourt le tableau de coordonnées de la route
   useEffect(() => {
     if (isDelivering && routeData.path.length > 0) {
-      let currentIndex = 0;
+      let i = 0;
       const interval = setInterval(() => {
-        if (currentIndex < routeData.path.length) {
-          const nextPos = routeData.path[currentIndex];
-          setCourierPos(nextPos);
-          socket.emit('update-location', { lat: nextPos[0], lng: nextPos[1], orderId: 'YDE-237' });
-          currentIndex++;
+        if (i < routeData.path.length) {
+          const pos = routeData.path[i];
+          setCourierPos(pos);
+          socket.emit('update-location', { lat: pos[0], lng: pos[1] });
+          i++;
         } else {
           setIsDelivering(false);
           clearInterval(interval);
+          setShowArrivalModal(true);
         }
-      }, 500); // Vitesse de déplacement (500ms par segment de route)
+      }, 400);
       return () => clearInterval(interval);
     }
   }, [isDelivering, routeData.path]);
 
   return (
-    <div className="h-screen w-full flex flex-col md:flex-row overflow-hidden bg-gray-100">
+    <div className="flex flex-col h-screen w-full bg-slate-50 font-sans">
       
-      {/* Mobile Header */}
-      <header className="md:hidden bg-blue-700 p-4 text-white flex justify-between z-[2000]">
-        <span className="font-black">YDE-EXPRESS 🛵</span>
-        <button onClick={() => setIsSidebarOpen(!isSidebarOpen)} className="text-xs border px-2 py-1 rounded">
-          {isSidebarOpen ? "Carte" : "Infos"}
-        </button>
+      {/* 1. HEADER (Full Width) */}
+      <header className="h-16 bg-blue-700 text-white flex items-center justify-between px-6 shadow-md z-[1001]">
+        <div className="flex items-center gap-2">
+          <h1 className="text-xl font-black italic tracking-tighter">YDE-EXPRESS</h1>
+        </div>
+        <div className="hidden md:flex gap-4 text-xs font-bold uppercase tracking-widest opacity-80">
+          <span>Yaoundé</span>
+          <span>•</span>
+          <span>Live Tracking</span>
+        </div>
       </header>
 
-      {/* Sidebar */}
-      <aside className={`fixed md:relative z-[1002] w-full md:w-80 h-full bg-white transition-transform ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}`}>
-        <div className="p-6 bg-blue-700 text-white hidden md:block">
-          <h1 className="text-xl font-black italic">YDE-EXPRESS</h1>
-        </div>
+      {/* 2. ZONE PRINCIPALE (Sidebar + Map) */}
+      <div className="flex flex-1 overflow-hidden relative">
         
-        <div className="p-5 space-y-6">
-          <div className="grid grid-cols-2 gap-4">
-            <div className="bg-gray-50 p-3 rounded-xl">
-              <p className="text-[10px] uppercase font-bold text-gray-400">Distance</p>
-              <p className="text-lg font-black">{routeData.distance} km</p>
-            </div>
-            <div className="bg-gray-50 p-3 rounded-xl">
-              <p className="text-[10px] uppercase font-bold text-gray-400">Arrivée</p>
-              <p className="text-lg font-black">{routeData.duration} min</p>
-            </div>
+        {/* Sidebar */}
+        <aside className="hidden md:flex w-80 bg-white border-r border-slate-200 flex-col p-6 space-y-6 z-[1000]">
+          <div className="space-y-2">
+            <label className="text-[10px] font-black text-slate-400 uppercase">Rechercher</label>
+            <input 
+              type="text" 
+              placeholder="Quartier à Yaoundé..." 
+              className="w-full p-3 bg-slate-100 rounded-xl text-sm outline-none focus:ring-2 focus:ring-blue-500"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
           </div>
 
-          <div className="space-y-4 border-l-2 border-dashed ml-2 pl-4">
-            <div className="text-sm"><strong>Départ:</strong> Poste Centrale</div>
-            <div className="text-sm font-bold text-blue-600 italic font-medium tracking-tight">Cliquer sur la carte pour changer l'arrivée</div>
+          <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100">
+            <p className="text-[10px] font-bold text-slate-400 uppercase mb-2">Estimation</p>
+            <div className="flex justify-between">
+              <span className="text-lg font-black">{routeData.distance} km</span>
+              <span className="text-lg font-black text-blue-600">{routeData.duration} min</span>
+            </div>
           </div>
 
           <button 
             disabled={isDelivering}
-            onClick={() => { setIsDelivering(true); setIsSidebarOpen(false); }}
-            className={`w-full py-4 rounded-2xl font-bold uppercase transition-all ${isDelivering ? 'bg-gray-200 text-gray-400' : 'bg-green-600 text-white hover:bg-green-700'}`}
+            onClick={() => setIsDelivering(true)}
+            className={`w-full py-4 rounded-2xl font-black uppercase tracking-tight shadow-lg transition-all ${isDelivering ? 'bg-slate-100 text-slate-400' : 'bg-blue-600 text-white hover:bg-blue-700 shadow-blue-100'}`}
           >
-            {isDelivering ? "Livraison en cours..." : "Lancer la course"}
+            {isDelivering ? "En cours..." : "Lancer la course"}
           </button>
-        </div>
-      </aside>
+        </aside>
 
-      {/* Map */}
-      <main className="flex-1 relative">
-        <MapContainer center={POSTE_CENTRALE} zoom={14} className="h-full w-full">
-          <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
-          <MapClickHandler onLocationSelect={setDestination} disabled={isDelivering} />
-          <Marker position={POSTE_CENTRALE} icon={iconVendeur} />
-          <Marker position={destination} icon={iconClient} />
-          <Marker position={courierPos} icon={iconMoto}>
-            <Popup>Livreur en direct 🛵</Popup>
-          </Marker>
-          <Routing start={POSTE_CENTRALE} end={destination} onRouteInfo={setRouteData} />
-        </MapContainer>
-      </main>
+        {/* Map */}
+        <main className="flex-1 relative">
+          <MapContainer center={POSTE_CENTRALE} zoom={14} className="h-full w-full">
+            <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+            <ChangeView center={destination} />
+            <MapClickHandler onLocationSelect={setDestination} disabled={isDelivering} />
+            <Marker position={POSTE_CENTRALE} icon={iconVendeur} />
+            <Marker position={destination} icon={iconClient} />
+            <Marker position={courierPos} icon={iconMoto} />
+            <Routing start={POSTE_CENTRALE} end={destination} onRouteInfo={setRouteData} />
+          </MapContainer>
+        </main>
+      </div>
+
+      {/* 3. FOOTER (Full Width & Responsive) */}
+<footer className="w-full bg-white border-t border-slate-200 py-3 px-6 z-[1001]">
+  <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-4">
+    
+    {/* Stats rapides */}
+    <div className="flex items-center gap-6 text-sm">
+      <div className="flex items-center gap-2">
+        <span className={`text-green-500 text-lg ${isDelivering ? 'animate-pulse' : ''}`}>●</span>
+        <span className="font-bold text-slate-700 tracking-tight">Livreur : {isDelivering ? 'En mouvement' : 'En attente'}</span>
+      </div>
+      <div className="h-4 w-px bg-slate-200"></div>
+      <div className="font-medium text-slate-500">{routeData.distance} km total</div>
+    </div>
+
+    {/* Copyright */}
+    <div className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em]">
+      &copy; 2025 YDE-Express • Digital Delivery Yaoundé
+    </div>
+
+    {/* Social / Support avec Message Automatique */}
+    <div className="flex gap-6">
+      <a 
+        href="https://facebook.com/ydeexpress" 
+        target="_blank" 
+        rel="noopener noreferrer" 
+        className="flex items-center gap-2 text-slate-400 hover:text-blue-600 transition-all hover:scale-110 text-xs font-bold uppercase"
+      >
+        <Facebook size={18} />
+        <span className="hidden sm:inline">Facebook</span>
+      </a>
+      
+      {/* Lien WhatsApp avec texte encodé : "Bonjour YDE-Express, je souhaite suivre mon colis n°237" */}
+      <a 
+        href="https://wa.me/237694637342?text=Bonjour%20YDE-Express%2C%20je%20souhaite%20suivre%20mon%20colis%20n%C2%B0237" 
+        target="_blank" 
+        rel="noopener noreferrer" 
+        className="flex items-center gap-2 text-slate-400 hover:text-green-500 transition-all hover:scale-110 text-xs font-bold uppercase"
+      >
+        <MessageCircle size={18} />
+        <span className="hidden sm:inline">WhatsApp</span>
+      </a>
+    </div>
+  </div>
+</footer>
+
+      {/* Arrival Modal */}
+      {showArrivalModal && (
+        <div className="fixed inset-0 z-[3000] flex items-center justify-center p-6 bg-slate-900/60 backdrop-blur-sm">
+          <div className="bg-white rounded-[40px] p-8 max-w-sm w-full text-center shadow-2xl">
+            <div className="text-5xl mb-4">✅</div>
+            <h2 className="text-2xl font-black mb-2">Arrivée !</h2>
+            <p className="text-slate-500 text-sm mb-6 font-medium">Le coursier est à destination.</p>
+            <a href="tel:+237694637342" className="block w-full py-4 bg-green-500 text-white font-black rounded-2xl mb-3 shadow-lg shadow-green-100 uppercase flex items-center justify-center gap-2">
+              📞 Appeler le livreur
+            </a>
+            <button onClick={() => setShowArrivalModal(false)} className="w-full py-4 bg-slate-100 text-slate-600 font-bold rounded-2xl">Fermer</button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
